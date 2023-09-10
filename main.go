@@ -4,17 +4,26 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
+
+	"github.com/rkanagy/pokedexcli/internal/pokemon"
 )
 
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(config *config) error
+}
+
+type config struct {
+	nextURL     *string
+	previousURL *string
 }
 
 func main() {
 	commands := initializeCliCommands()
+	currentConfig := config{}
 
 	// The Read-Eval-Print loop for the CLI
 	reader := bufio.NewScanner(os.Stdin)
@@ -25,7 +34,7 @@ func main() {
 
 		// interpret commands
 		if command, exists := commands[text]; exists {
-			err := command.callback()
+			err := command.callback(&currentConfig)
 			if err != nil {
 				errorHandler(err)
 			}
@@ -49,27 +58,23 @@ func initializeCliCommands() map[string]cliCommand {
 			description: "Exit the Pokedex",
 			callback:    commandExit,
 		},
+		"map": {
+			name:        "map",
+			description: "Display the next 20 location areas",
+			callback:    commandMap,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "Display the previous 20 location areas",
+			callback:    commandMapb,
+		},
 	}
 }
 
-func commandHelp() error {
-	fmt.Println()
-	fmt.Println("Welcome to the Pokedex!")
-	fmt.Println("Usage:")
-	fmt.Println()
-
-	for name, command := range initializeCliCommands() {
-		fmt.Printf("%s: %s\n", name, command.description)
-	}
-
-	fmt.Println()
-
-	return nil
-}
-
-func commandExit() error {
-	os.Exit(0)
-	return nil
+func cleanInput(text string) string {
+	output := strings.TrimSpace(text)
+	output = strings.ToLower(output)
+	return output
 }
 
 func errorHandler(err error) {
@@ -77,13 +82,72 @@ func errorHandler(err error) {
 }
 
 func commandNotRecognized() {
-	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "command not recognized")
-	fmt.Fprintln(os.Stderr)
 }
 
-func cleanInput(text string) string {
-	output := strings.TrimSpace(text)
-	output = strings.ToLower(output)
-	return output
+func commandHelp(config *config) error {
+	fmt.Println()
+	fmt.Println("Welcome to the Pokedex!")
+	fmt.Println("Usage:")
+	fmt.Println()
+
+	commands := initializeCliCommands()
+	sortedKeys := sortKeys(commands)
+	for _, key := range sortedKeys {
+		command := commands[key]
+		fmt.Printf("%s: %s\n", command.name, command.description)
+	}
+
+	fmt.Println()
+
+	return nil
+}
+
+func commandExit(config *config) error {
+	os.Exit(0)
+	return nil
+}
+
+func commandMap(config *config) error {
+	locations, err := pokemon.GetNextLocationAreas(config.nextURL)
+	if err != nil {
+		return err
+	}
+
+	for _, result := range locations.Results {
+		fmt.Println(result.Name)
+	}
+	updateConfig(locations, config)
+
+	return nil
+}
+
+func commandMapb(config *config) error {
+	locations, err := pokemon.GetPreviousLocationAreas(config.previousURL)
+	if err != nil {
+		return err
+	}
+
+	for _, result := range locations.Results {
+		fmt.Println(result.Name)
+	}
+	updateConfig(locations, config)
+
+	return nil
+}
+
+func updateConfig(locations pokemon.LocationAreas, config *config) {
+	config.nextURL = locations.Next
+	config.previousURL = locations.Previous
+}
+
+func sortKeys(mapToSort map[string]cliCommand) []string {
+	keys := make([]string, 0, len(mapToSort))
+
+	for key := range mapToSort {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	return keys
 }

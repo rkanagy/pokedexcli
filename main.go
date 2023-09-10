@@ -27,12 +27,10 @@ func main() {
 		if command, exists := commands[text]; exists {
 			err := command.callback()
 			if err != nil {
-				// handle error
-				fmt.Fprintln(os.Stderr, err)
+				errorHandler(err)
 			}
 		} else {
-			// invalid command
-			fmt.Fprintln(os.Stderr, "command not recognized")
+			commandNotRecognized()
 		}
 
 		fmt.Print("Pokedex > ")
@@ -72,6 +70,16 @@ func commandHelp() error {
 func commandExit() error {
 	os.Exit(0)
 	return nil
+}
+
+func errorHandler(err error) {
+	fmt.Fprintln(os.Stderr, err)
+}
+
+func commandNotRecognized() {
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "command not recognized")
+	fmt.Fprintln(os.Stderr)
 }
 
 func cleanInput(text string) string {

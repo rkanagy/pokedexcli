@@ -71,26 +71,6 @@ func GetLocationAreas(config *Config, direction int) (LocationAreas, error) {
 	return locations, nil
 }
 
-// GetNextLocationAreas returns the next set of locations
-func getNextLocationAreas(config *Config) (LocationAreas, error) {
-	locations, err := GetLocationAreas(config, Next)
-	if err != nil {
-		return LocationAreas{}, err
-	}
-
-	return locations, nil
-}
-
-// GetPreviousLocationAreas returns the previous set of locations
-func getPreviousLocationAreas(config *Config) (LocationAreas, error) {
-	locations, err := GetLocationAreas(config, Previous)
-	if err != nil {
-		return LocationAreas{}, err
-	}
-
-	return locations, nil
-}
-
 func getNextURL(nextURL *string) (string, error) {
 	url := defaultNextURL
 	if nextURL != nil {

@@ -71,23 +71,6 @@ func GetLocationAreas(config *Config, direction int) (LocationAreas, error) {
 	return locations, nil
 }
 
-func getNextURL(nextURL *string) (string, error) {
-	url := defaultNextURL
-	if nextURL != nil {
-		url = *nextURL
-	}
-	return url, nil
-}
-
-func getPreviousURL(previousURL *string) (string, error) {
-	if previousURL == nil {
-		return "", errors.New("At top of locations list")
-	}
-
-	return *previousURL, nil
-
-}
-
 func getURL(config *Config, direction int) (string, error) {
 	var err error
 	var url string
@@ -108,6 +91,23 @@ func getURL(config *Config, direction int) (string, error) {
 	}
 
 	return url, nil
+}
+
+func getNextURL(nextURL *string) (string, error) {
+	url := defaultNextURL
+	if nextURL != nil {
+		url = *nextURL
+	}
+	return url, nil
+}
+
+func getPreviousURL(previousURL *string) (string, error) {
+	if previousURL == nil {
+		return "", errors.New("At top of locations list")
+	}
+
+	return *previousURL, nil
+
 }
 
 func updateConfig(locations LocationAreas, config *Config) {

@@ -13,17 +13,12 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(config *config) error
-}
-
-type config struct {
-	nextURL     *string
-	previousURL *string
+	callback    func(config *pokemon.Config) error
 }
 
 func main() {
 	commands := initializeCliCommands()
-	currentConfig := config{}
+	currentConfig := pokemon.Config{}
 
 	// The Read-Eval-Print loop for the CLI
 	reader := bufio.NewScanner(os.Stdin)
@@ -85,7 +80,7 @@ func commandNotRecognized() {
 	fmt.Fprintln(os.Stderr, "command not recognized")
 }
 
-func commandHelp(config *config) error {
+func commandHelp(config *pokemon.Config) error {
 	fmt.Println()
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
@@ -103,13 +98,13 @@ func commandHelp(config *config) error {
 	return nil
 }
 
-func commandExit(config *config) error {
+func commandExit(config *pokemon.Config) error {
 	os.Exit(0)
 	return nil
 }
 
-func commandMap(config *config) error {
-	locations, err := pokemon.GetNextLocationAreas(config.nextURL)
+func commandMap(config *pokemon.Config) error {
+	locations, err := pokemon.GetLocationAreas(config, pokemon.Next)
 	if err != nil {
 		return err
 	}
@@ -117,13 +112,12 @@ func commandMap(config *config) error {
 	for _, result := range locations.Results {
 		fmt.Println(result.Name)
 	}
-	updateConfig(locations, config)
 
 	return nil
 }
 
-func commandMapb(config *config) error {
-	locations, err := pokemon.GetPreviousLocationAreas(config.previousURL)
+func commandMapb(config *pokemon.Config) error {
+	locations, err := pokemon.GetLocationAreas(config, pokemon.Previous)
 	if err != nil {
 		return err
 	}
@@ -131,14 +125,8 @@ func commandMapb(config *config) error {
 	for _, result := range locations.Results {
 		fmt.Println(result.Name)
 	}
-	updateConfig(locations, config)
 
 	return nil
-}
-
-func updateConfig(locations pokemon.LocationAreas, config *config) {
-	config.nextURL = locations.Next
-	config.previousURL = locations.Previous
 }
 
 func sortKeys(mapToSort map[string]cliCommand) []string {

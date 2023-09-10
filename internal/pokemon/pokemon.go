@@ -24,14 +24,56 @@ type Results struct {
 	URL  string `json:"url"`
 }
 
-// GetNextLocationAreas returns the next set of locations
-func GetNextLocationAreas(nextURL *string) (LocationAreas, error) {
-	url, err := getNextURL(nextURL)
+// Config contains pointers to the next and previous URLs
+type Config struct {
+	nextURL     *string
+	previousURL *string
+}
+
+const (
+	// Previous is the direction for previous set of location areas
+	Previous = iota
+
+	// Next is the direction for next set of location areas
+	Next = iota
+)
+
+// GetLocationAreas returns the location areas corresponding to
+// the direction (Previous or Next) passed in.
+func GetLocationAreas(config *Config, direction int) (LocationAreas, error) {
+	url, err := getURL(config, direction)
 	if err != nil {
 		return LocationAreas{}, err
 	}
 
-	locations, err := getLocationAreas(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return LocationAreas{}, err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode > 299 {
+		msg := fmt.Sprintf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, body)
+		return LocationAreas{}, errors.New(msg)
+	}
+	if err != nil {
+		return LocationAreas{}, err
+	}
+
+	locations := LocationAreas{}
+	err = json.Unmarshal(body, &locations)
+	if err != nil {
+		return LocationAreas{}, err
+	}
+	updateConfig(locations, config)
+
+	return locations, nil
+}
+
+// GetNextLocationAreas returns the next set of locations
+func getNextLocationAreas(config *Config) (LocationAreas, error) {
+	locations, err := GetLocationAreas(config, Next)
 	if err != nil {
 		return LocationAreas{}, err
 	}
@@ -40,13 +82,8 @@ func GetNextLocationAreas(nextURL *string) (LocationAreas, error) {
 }
 
 // GetPreviousLocationAreas returns the previous set of locations
-func GetPreviousLocationAreas(previousURL *string) (LocationAreas, error) {
-	url, err := getPreviousURL(previousURL)
-	if err != nil {
-		return LocationAreas{}, err
-	}
-
-	locations, err := getLocationAreas(url)
+func getPreviousLocationAreas(config *Config) (LocationAreas, error) {
+	locations, err := GetLocationAreas(config, Previous)
 	if err != nil {
 		return LocationAreas{}, err
 	}
@@ -71,27 +108,29 @@ func getPreviousURL(previousURL *string) (string, error) {
 
 }
 
-func getLocationAreas(url string) (LocationAreas, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return LocationAreas{}, err
+func getURL(config *Config, direction int) (string, error) {
+	var err error
+	var url string
+
+	switch direction {
+	case Previous:
+		url, err = getPreviousURL(config.previousURL)
+		if err != nil {
+			return "", err
+		}
+	case Next:
+		url, err = getNextURL(config.nextURL)
+		if err != nil {
+			return "", err
+		}
+	default:
+		return "", errors.New("getLocationAreas: invalid direction argument")
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if resp.StatusCode > 299 {
-		msg := fmt.Sprintf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, body)
-		return LocationAreas{}, errors.New(msg)
-	}
-	if err != nil {
-		return LocationAreas{}, err
-	}
+	return url, nil
+}
 
-	locations := LocationAreas{}
-	err = json.Unmarshal(body, &locations)
-	if err != nil {
-		return LocationAreas{}, err
-	}
-
-	return locations, nil
+func updateConfig(locations LocationAreas, config *Config) {
+	config.nextURL = locations.Next
+	config.previousURL = locations.Previous
 }

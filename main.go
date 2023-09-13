@@ -16,7 +16,10 @@ type cliCommand struct {
 	callback    func(config *pokemon.Config) error
 }
 
+var pokemonAPI pokemon.Pokemon
+
 func main() {
+	pokemonAPI = pokemon.NewPokemon()
 	commands := initializeCliCommands()
 	currentConfig := pokemon.Config{}
 
@@ -104,7 +107,7 @@ func commandExit(config *pokemon.Config) error {
 }
 
 func commandMap(config *pokemon.Config) error {
-	locations, err := pokemon.GetLocationAreas(config, pokemon.Next)
+	locations, err := pokemonAPI.GetLocationAreas(config, pokemon.Next)
 	if err != nil {
 		return err
 	}
@@ -117,7 +120,7 @@ func commandMap(config *pokemon.Config) error {
 }
 
 func commandMapb(config *pokemon.Config) error {
-	locations, err := pokemon.GetLocationAreas(config, pokemon.Previous)
+	locations, err := pokemonAPI.GetLocationAreas(config, pokemon.Previous)
 	if err != nil {
 		return err
 	}

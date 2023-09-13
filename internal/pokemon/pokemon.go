@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
+
+	"github.com/rkanagy/pokedexcli/internal/pokecache"
 )
 
 const defaultNextURL string = "https://pokeapi.co/api/v2/location-area"
@@ -38,27 +41,45 @@ const (
 	Next = iota
 )
 
+// Pokemon contains cached responses from the Pokemon API
+type Pokemon struct {
+	cache pokecache.Cache
+}
+
+// NewPokemon creates a new Pokemon struct
+func NewPokemon() Pokemon {
+	return Pokemon{
+		cache: pokecache.NewCache(5 * time.Minute),
+	}
+}
+
 // GetLocationAreas returns the location areas corresponding to
 // the direction (Previous or Next) passed in.
-func GetLocationAreas(config *Config, direction int) (LocationAreas, error) {
+func (p *Pokemon) GetLocationAreas(config *Config, direction int) (LocationAreas, error) {
 	url, err := getURL(config, direction)
 	if err != nil {
 		return LocationAreas{}, err
 	}
 
-	resp, err := http.Get(url)
-	if err != nil {
-		return LocationAreas{}, err
-	}
+	// is the url in the cache?  If so, then get it from the cache,
+	//otherwise do an HTTP Get on the url
+	body, found := p.cache.Get(url)
+	if !found {
+		resp, err := http.Get(url)
+		if err != nil {
+			return LocationAreas{}, err
+		}
 
-	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if resp.StatusCode > 299 {
-		msg := fmt.Sprintf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, body)
-		return LocationAreas{}, errors.New(msg)
-	}
-	if err != nil {
-		return LocationAreas{}, err
+		body, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode > 299 {
+			msg := fmt.Sprintf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, body)
+			return LocationAreas{}, errors.New(msg)
+		}
+		if err != nil {
+			return LocationAreas{}, err
+		}
+		p.cache.Add(url, body)
 	}
 
 	locations := LocationAreas{}

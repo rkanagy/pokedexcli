@@ -57,7 +57,6 @@ func NewPokemon() Pokemon {
 
 // GetLocationAreas returns the location areas corresponding to
 // the direction (Previous or Next) passed in.
-// func (p *Pokemon) GetLocationAreas(config *Config, direction int) (LocationAreas, error) {
 func (p *Pokemon) GetLocationAreas(direction int) (LocationAreas, error) {
 	url, err := p.getURL(direction)
 	if err != nil {

@@ -28,7 +28,7 @@ type Results struct {
 }
 
 // Config contains pointers to the next and previous URLs
-type Config struct {
+type config struct {
 	nextURL     *string
 	previousURL *string
 }
@@ -43,20 +43,23 @@ const (
 
 // Pokemon contains cached responses from the Pokemon API
 type Pokemon struct {
-	cache pokecache.Cache
+	cache  pokecache.Cache
+	config config
 }
 
 // NewPokemon creates a new Pokemon struct
 func NewPokemon() Pokemon {
 	return Pokemon{
-		cache: pokecache.NewCache(5 * time.Minute),
+		cache:  pokecache.NewCache(5 * time.Minute),
+		config: config{},
 	}
 }
 
 // GetLocationAreas returns the location areas corresponding to
 // the direction (Previous or Next) passed in.
-func (p *Pokemon) GetLocationAreas(config *Config, direction int) (LocationAreas, error) {
-	url, err := getURL(config, direction)
+// func (p *Pokemon) GetLocationAreas(config *Config, direction int) (LocationAreas, error) {
+func (p *Pokemon) GetLocationAreas(direction int) (LocationAreas, error) {
+	url, err := p.getURL(direction)
 	if err != nil {
 		return LocationAreas{}, err
 	}
@@ -87,23 +90,23 @@ func (p *Pokemon) GetLocationAreas(config *Config, direction int) (LocationAreas
 	if err != nil {
 		return LocationAreas{}, err
 	}
-	updateConfig(locations, config)
+	p.updateConfig(locations)
 
 	return locations, nil
 }
 
-func getURL(config *Config, direction int) (string, error) {
+func (p *Pokemon) getURL(direction int) (string, error) {
 	var err error
 	var url string
 
 	switch direction {
 	case Previous:
-		url, err = getPreviousURL(config.previousURL)
+		url, err = getPreviousURL(p.config.previousURL)
 		if err != nil {
 			return "", err
 		}
 	case Next:
-		url, err = getNextURL(config.nextURL)
+		url, err = getNextURL(p.config.nextURL)
 		if err != nil {
 			return "", err
 		}
@@ -112,6 +115,11 @@ func getURL(config *Config, direction int) (string, error) {
 	}
 
 	return url, nil
+}
+
+func (p *Pokemon) updateConfig(locations LocationAreas) {
+	p.config.nextURL = locations.Next
+	p.config.previousURL = locations.Previous
 }
 
 func getNextURL(nextURL *string) (string, error) {
@@ -129,9 +137,4 @@ func getPreviousURL(previousURL *string) (string, error) {
 
 	return *previousURL, nil
 
-}
-
-func updateConfig(locations LocationAreas, config *Config) {
-	config.nextURL = locations.Next
-	config.previousURL = locations.Previous
 }

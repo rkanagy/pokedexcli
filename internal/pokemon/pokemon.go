@@ -11,7 +11,7 @@ import (
 	"github.com/rkanagy/pokedexcli/internal/pokecache"
 )
 
-const defaultNextURL string = "https://pokeapi.co/api/v2/location-area"
+const defaultNextURL string = "https://pokeapi.co/api/v2/location-area?offset=0&limit=20"
 
 // LocationAreas contains the fields returned from location-area endpoint
 type LocationAreas struct {
@@ -63,8 +63,13 @@ func (p *Pokemon) GetLocationAreas(config *Config, direction int) (LocationAreas
 
 	// is the url in the cache?  If so, then get it from the cache,
 	//otherwise do an HTTP Get on the url
+	fmt.Println("url: " + url)
 	body, found := p.cache.Get(url)
+	if found {
+		fmt.Println("url found in cache")
+	}
 	if !found {
+		fmt.Println("url not found in cache")
 		resp, err := http.Get(url)
 		if err != nil {
 			return LocationAreas{}, err

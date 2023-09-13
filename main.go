@@ -16,10 +16,9 @@ type cliCommand struct {
 	callback    func(config *pokemon.Config) error
 }
 
-var pokemonAPI pokemon.Pokemon
+var pokemonAPI pokemon.Pokemon = pokemon.NewPokemon()
 
 func main() {
-	pokemonAPI = pokemon.NewPokemon()
 	commands := initializeCliCommands()
 	currentConfig := pokemon.Config{}
 

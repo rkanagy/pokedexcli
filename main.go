@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -13,10 +14,10 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(parameters ...string) error
 }
 
-var pokemonAPI pokemon.Pokemon = pokemon.NewPokemon()
+var pokemonAPI pokemon.API = pokemon.NewAPI()
 
 func main() {
 	commands := initializeCliCommands()
@@ -27,10 +28,13 @@ func main() {
 
 	for reader.Scan() {
 		text := cleanInput(reader.Text())
+		splitText := strings.Split(text, " ")
+		commandName := splitText[0]
+		arguments := splitText[1:]
 
 		// interpret commands
-		if command, exists := commands[text]; exists {
-			err := command.callback()
+		if command, exists := commands[commandName]; exists {
+			err := command.callback(arguments...)
 			if err != nil {
 				errorHandler(err)
 			}
@@ -64,6 +68,11 @@ func initializeCliCommands() map[string]cliCommand {
 			description: "Display the previous 20 location areas",
 			callback:    commandMapb,
 		},
+		"explore": {
+			name:        "explore",
+			description: "Display the encountered Pokemon found at given location area",
+			callback:    commandExplore,
+		},
 	}
 }
 
@@ -81,7 +90,7 @@ func commandNotRecognized() {
 	fmt.Fprintln(os.Stderr, "command not recognized")
 }
 
-func commandHelp() error {
+func commandHelp(parameters ...string) error {
 	fmt.Println()
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
@@ -99,12 +108,12 @@ func commandHelp() error {
 	return nil
 }
 
-func commandExit() error {
+func commandExit(parameters ...string) error {
 	os.Exit(0)
 	return nil
 }
 
-func commandMap() error {
+func commandMap(parameters ...string) error {
 	locations, err := pokemonAPI.GetLocationAreas(pokemon.Next)
 	if err != nil {
 		return err
@@ -117,7 +126,7 @@ func commandMap() error {
 	return nil
 }
 
-func commandMapb() error {
+func commandMapb(parameters ...string) error {
 	locations, err := pokemonAPI.GetLocationAreas(pokemon.Previous)
 	if err != nil {
 		return err
@@ -125,6 +134,26 @@ func commandMapb() error {
 
 	for _, result := range locations.Results {
 		fmt.Println(result.Name)
+	}
+
+	return nil
+}
+
+func commandExplore(parameters ...string) error {
+	if parameters == nil {
+		return errors.New("No location area name was entered")
+	}
+
+	locationArea := parameters[0]
+	location, err := pokemonAPI.GetLocationArea(locationArea)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Exploring " + locationArea + "...")
+	fmt.Println("Found Pokemon:")
+	for _, pokemonEncounter := range location.PokemonEncounters {
+		fmt.Println(" - " + pokemonEncounter.Pokemon.Name)
 	}
 
 	return nil

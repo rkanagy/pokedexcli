@@ -81,6 +81,11 @@ func initializeCliCommands() map[string]cliCommand {
 			description: "Captures a Pokemon based on higher experience points making it more difficult",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "Inspects a captured Pokemon and displays its information",
+			callback:    commandInspect,
+		},
 	}
 }
 
@@ -187,6 +192,37 @@ func commandCatch(parameters ...string) error {
 	}
 
 	return nil
+}
+
+func commandInspect(parameters ...string) error {
+	if len(parameters) <= 0 {
+		return errors.New("No Pokemon name was entered")
+	}
+
+	name := parameters[0]
+	if pokemon, exists := pokedex[name]; exists {
+		displayPokemonInfo(pokemon)
+	} else {
+		fmt.Println("you have not caught that pokemon")
+	}
+
+	return nil
+}
+
+func displayPokemonInfo(pokemon pokemon.Pokemon) {
+	fmt.Printf("Name: %v\n", pokemon.Name)
+	fmt.Printf("Height: %v\n", pokemon.Height)
+	fmt.Printf("Weight: %v\n", pokemon.Weight)
+
+	fmt.Printf("Stats:\n")
+	for _, stat := range pokemon.Stats {
+		fmt.Printf("  -%v: %v\n", stat.Stat.Name, stat.BaseStat)
+	}
+
+	fmt.Printf("Types:\n")
+	for _, pokemonType := range pokemon.Types {
+		fmt.Printf("  - %v\n", pokemonType.Type.Name)
+	}
 }
 
 func sortKeys(mapToSort map[string]cliCommand) []string {

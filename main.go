@@ -17,7 +17,10 @@ type cliCommand struct {
 	callback    func(parameters ...string) error
 }
 
+type pokedexType map[string]pokemon.Pokemon
+
 var pokemonAPI pokemon.API = pokemon.NewAPI()
+var pokedex pokedexType = make(pokedexType, 10)
 
 func main() {
 	commands := initializeCliCommands()
@@ -72,6 +75,11 @@ func initializeCliCommands() map[string]cliCommand {
 			name:        "explore",
 			description: "Display the encountered Pokemon found at given location area",
 			callback:    commandExplore,
+		},
+		"catch": {
+			name:        "catch",
+			description: "Captures a Pokemon based on higher experience points making it more difficult",
+			callback:    commandCatch,
 		},
 	}
 }
@@ -140,7 +148,7 @@ func commandMapb(parameters ...string) error {
 }
 
 func commandExplore(parameters ...string) error {
-	if parameters == nil {
+	if len(parameters) == 0 {
 		return errors.New("No location area name was entered")
 	}
 
@@ -154,6 +162,28 @@ func commandExplore(parameters ...string) error {
 	fmt.Println("Found Pokemon:")
 	for _, pokemonEncounter := range location.PokemonEncounters {
 		fmt.Println(" - " + pokemonEncounter.Pokemon.Name)
+	}
+
+	return nil
+}
+
+func commandCatch(parameters ...string) error {
+	if len(parameters) <= 0 {
+		return errors.New("No Pokemon name was entered")
+	}
+
+	name := parameters[0]
+	fmt.Printf("Throwing a Pokeball at %s...\n", name)
+
+	pokemon, err := pokemonAPI.Capture(name)
+	if err != nil {
+		return err
+	}
+	if pokemon == nil {
+		fmt.Printf("%s escaped!\n", name)
+	} else {
+		fmt.Printf("%s was caught!\n", name)
+		pokedex[name] = *pokemon
 	}
 
 	return nil
